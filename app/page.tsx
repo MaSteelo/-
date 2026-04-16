@@ -9,6 +9,26 @@ import MiniFuel from '@/components/MiniFuel'
 const ADMIN_PW = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || '1234'
 const DOWS = ['일', '월', '화', '수', '목', '금', '토']
 
+/* 공휴일 캐시 */
+const holidayCache: Record<string, Record<string, string>> = {}
+
+async function fetchHolidays(year: number): Promise<Record<string, string>> {
+  if (holidayCache[year]) return holidayCache[year]
+  try {
+    const res = await fetch(
+      `https://date.nager.at/api/v3/PublicHolidays/${year}/KR`
+    )
+    if (!res.ok) return {}
+    const data: { date: string; localName: string }[] = await res.json()
+    const map: Record<string, string> = {}
+    data.forEach(h => { map[h.date] = h.localName })
+    holidayCache[year] = map
+    return map
+  } catch {
+    return {}
+  }
+}
+
 type Tab = 'apply' | 'cal' | 'list'
 type ModalMode = 'detail' | 'edit' | 'delete' | 'notice' | 'adminLogin' | 'conflict' | null
 
@@ -52,6 +72,7 @@ export default function Home() {
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [conflictMsg, setConflictMsg] = useState('')
   const [isMobile, setIsMobile] = useState(false)
+  const [holidays, setHolidays] = useState<Record<string, string>>({})
 
   /* 신청 폼 */
   const [fDate, setFDate] = useState(new Date().toISOString().split('T')[0])
@@ -85,6 +106,10 @@ export default function Home() {
     window.addEventListener('resize', checkMobile)
     return () => { window.removeEventListener('hashchange', check); window.removeEventListener('resize', checkMobile) }
   }, [])
+
+  useEffect(() => {
+    fetchHolidays(calMonth.getFullYear()).then(setHolidays)
+  }, [calMonth])
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3500) }
 
@@ -326,10 +351,13 @@ export default function Home() {
                   const ds = `${calY}-${String(calM + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
                   const dow = new Date(calY, calM, d).getDay()
                   const isWeekend = dow === 0 || dow === 6
+                  const holidayName = holidays[ds]
+                  const isRed = isWeekend || !!holidayName
                   return (
                     <div key={d} style={{ display: 'grid', gridTemplateColumns: isMobile ? '52px repeat(4,1fr)' : '72px repeat(4,1fr)', borderTop: '1px solid #ccc', alignItems: 'stretch' }}>
-                      <div style={{ fontSize: isMobile ? 11 : 13, fontWeight: 600, color: isWeekend ? '#ef4444' : '#333', padding: isMobile ? '6px 3px' : '7px 6px', display: 'flex', alignItems: 'center', background: isWeekend ? '#fff8f8' : '#fff' }}>
-                        {calM + 1}/{d}<br /><span style={{ fontSize: isMobile ? 9 : 10, fontWeight: 400 }}>({DOWS[dow]})</span>
+                      <div style={{ fontSize: isMobile ? 11 : 13, fontWeight: 600, color: isRed ? '#ef4444' : '#333', padding: isMobile ? '6px 3px' : '7px 6px', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: isRed ? '#fff8f8' : '#fff' }}>
+                        <span>{calM + 1}/{d} <span style={{ fontSize: isMobile ? 9 : 10, fontWeight: 400 }}>({DOWS[dow]})</span></span>
+                        {holidayName && <span style={{ fontSize: 9, color: '#ef4444', fontWeight: 500, marginTop: 1, lineHeight: 1.2 }}>{holidayName}</span>}
                       </div>
                       {CARS.map(car => {
                         const rec = records.find(r => r.date === ds && r.car === car)
