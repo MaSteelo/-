@@ -209,11 +209,34 @@ export default function Home() {
     <div style={{ maxWidth: 900, margin: '0 auto', padding: isMobile ? '0 0 2rem' : '0 0.75rem 2rem', fontFamily: 'inherit' }}>
 
       {/* ── 헤더 ── */}
-      <div style={{ background: '#fff', borderBottom: '1px solid #e8e8e8', padding: isMobile ? '0.75rem 1rem' : '0.875rem 1.25rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <Image src="/logo.png" alt="광주광역시" width={36} height={36} style={{ objectFit: 'contain' }} />
-        <div>
-          <div style={{ fontSize: isMobile ? 10 : 11, color: '#888', lineHeight: 1.3 }}>광주광역시</div>
-          <div style={{ fontSize: isMobile ? 13 : 15, fontWeight: 600, color: '#1a1a1a', lineHeight: 1.3 }}>보건환경연구원 공용차량 배차</div>
+      <div style={{ background: '#fff', borderBottom: '1px solid #e8e8e8', padding: isMobile ? '0.7rem 1rem' : '0.875rem 1.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 14 }}>
+        <Image src="/symbol.png" alt="광주광역시 심볼" width={isMobile ? 38 : 48} height={isMobile ? 38 : 48} style={{ objectFit: 'contain', flexShrink: 0 }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: isMobile ? 4 : 6, flexWrap: 'wrap' }}>
+            <span style={{
+              fontSize: isMobile ? 15 : 20,
+              fontWeight: 800,
+              color: '#c0392b',
+              letterSpacing: '-0.5px',
+              fontFamily: "'Apple SD Gothic Neo', '맑은 고딕', 'Malgun Gothic', sans-serif",
+              lineHeight: 1.2,
+            }}>광주광역시</span>
+            <span style={{
+              fontSize: isMobile ? 13 : 17,
+              fontWeight: 700,
+              color: '#1a1a1a',
+              letterSpacing: '-0.3px',
+              fontFamily: "'Apple SD Gothic Neo', '맑은 고딕', 'Malgun Gothic', sans-serif",
+              lineHeight: 1.2,
+            }}>보건환경연구원</span>
+          </div>
+          <div style={{
+            fontSize: isMobile ? 10 : 12,
+            fontWeight: 500,
+            color: '#888',
+            letterSpacing: '0.5px',
+            fontFamily: "'Apple SD Gothic Neo', '맑은 고딕', 'Malgun Gothic', sans-serif",
+          }}>공용차량 배차 시스템</div>
         </div>
       </div>
 
@@ -266,11 +289,21 @@ export default function Home() {
               <div style={{ ...S.fg, gridColumn: isMobile ? '1' : '1 / -1' }}><label style={S.label}>목적지 *</label><input style={S.input} type="text" placeholder="예) 시청, 우체국" value={fDest} onChange={e => setFDest(e.target.value)} /></div>
               <div style={S.fg}>
                 <label style={S.label}>출발 시간</label>
-                <input style={S.input} type="time" value={fDepart} onChange={e => setFDepart(e.target.value)} />
+                <input style={S.input} type="text" inputMode="numeric" placeholder="예) 09:00" value={fDepart}
+                  onChange={e => {
+                    let v = e.target.value.replace(/[^0-9:]/g, '')
+                    if (v.length === 2 && !v.includes(':') && fDepart.length < 2) v = v + ':'
+                    setFDepart(v)
+                  }} maxLength={5} />
               </div>
               <div style={S.fg}>
                 <label style={S.label}>도착 시간 <span style={{ fontSize: 11, color: '#bbb' }}>(복귀 후 기입)</span></label>
-                <input style={S.input} type="time" value={fArrive} onChange={e => setFArrive(e.target.value)} />
+                <input style={S.input} type="text" inputMode="numeric" placeholder="예) 18:00" value={fArrive}
+                  onChange={e => {
+                    let v = e.target.value.replace(/[^0-9:]/g, '')
+                    if (v.length === 2 && !v.includes(':') && fArrive.length < 2) v = v + ':'
+                    setFArrive(v)
+                  }} maxLength={5} />
               </div>
             </div>
             <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#92400e', marginTop: '1rem', lineHeight: 1.6 }}>
@@ -496,8 +529,10 @@ export default function Home() {
               <div style={{ ...S.fg, gridColumn: '1/-1' }}><label style={S.label}>동승인</label><input style={S.input} type="text" value={ePassengers} onChange={e => setEPassengers(e.target.value)} placeholder="없으면 비워두세요" /></div>
               <div style={{ ...S.fg, gridColumn: '1/-1' }}><label style={S.label}>운행내용</label><input style={S.input} type="text" value={eDesc} onChange={e => setEDesc(e.target.value)} /></div>
               <div style={{ ...S.fg, gridColumn: '1/-1' }}><label style={S.label}>목적지</label><input style={S.input} type="text" value={eDest} onChange={e => setEDest(e.target.value)} /></div>
-              <div style={S.fg}><label style={S.label}>출발 시간</label><input style={S.input} type="time" value={eDepart} onChange={e => setEDepart(e.target.value)} /></div>
-              <div style={S.fg}><label style={S.label}>도착 시간</label><input style={S.input} type="time" value={eArrive} onChange={e => setEArrive(e.target.value)} /></div>
+              <div style={S.fg}><label style={S.label}>출발 시간</label><input style={S.input} type="text" inputMode="numeric" placeholder="예) 09:00" value={eDepart}
+                onChange={e => { let v = e.target.value.replace(/[^0-9:]/g, ''); if (v.length===2 && !v.includes(':') && eDepart.length<2) v=v+':'; setEDepart(v) }} maxLength={5} /></div>
+              <div style={S.fg}><label style={S.label}>도착 시간</label><input style={S.input} type="text" inputMode="numeric" placeholder="예) 18:00" value={eArrive}
+                onChange={e => { let v = e.target.value.replace(/[^0-9:]/g, ''); if (v.length===2 && !v.includes(':') && eArrive.length<2) v=v+':'; setEArrive(v) }} maxLength={5} /></div>
               <div style={{ ...S.fg, gridColumn: '1/-1' }}><label style={S.label}>유류(배터리)잔량</label><FuelBar value={eFuel} onChange={setEFuel} /></div>
               <div style={S.fg}><label style={S.label}>누적거리 (km)</label><input style={S.input} type="number" value={eKm} onChange={e => setEKm(e.target.value)} placeholder="km" /></div>
             </div>
