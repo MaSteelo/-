@@ -313,12 +313,12 @@ export default function Home() {
             </div>
             <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
               <div style={{ minWidth: 380 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '52px repeat(4,1fr)' : '72px repeat(4,1fr)', fontSize: 11, fontWeight: 500, color: '#999' }}>
-                  <div style={{ padding: '4px 4px', textAlign: 'center' }}>날짜</div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '52px repeat(4,1fr)' : '72px repeat(4,1fr)', fontSize: isMobile ? 12 : 13, fontWeight: 700, color: '#444', borderBottom: '2px solid #bbb', background: '#fafafa' }}>
+                  <div style={{ padding: '6px 4px', textAlign: 'center' }}>날짜</div>
                   {CARS.map(car => (
-                    <div key={car} style={{ padding: '4px 2px', textAlign: 'center' }}>
+                    <div key={car} style={{ padding: '6px 2px', textAlign: 'center', borderLeft: '1px solid #ccc' }}>
                       {car.split(' ')[0]}<br />
-                      <span style={{ fontSize: 9, color: '#bbb' }}>{CAR_NUMBERS[car]}</span>
+                      <span style={{ fontSize: isMobile ? 9 : 10, color: '#888', fontWeight: 500 }}>{CAR_NUMBERS[car]}</span>
                     </div>
                   ))}
                 </div>
@@ -327,14 +327,14 @@ export default function Home() {
                   const dow = new Date(calY, calM, d).getDay()
                   const isWeekend = dow === 0 || dow === 6
                   return (
-                    <div key={d} style={{ display: 'grid', gridTemplateColumns: isMobile ? '52px repeat(4,1fr)' : '72px repeat(4,1fr)', borderTop: '1px solid #f5f5f5', alignItems: 'stretch' }}>
-                      <div style={{ fontSize: isMobile ? 10 : 11, color: isWeekend ? '#ef4444' : '#999', padding: isMobile ? '6px 3px' : '7px 6px', display: 'flex', alignItems: 'center' }}>
-                        {calM + 1}/{d}<br /><span style={{ fontSize: 9 }}>({DOWS[dow]})</span>
+                    <div key={d} style={{ display: 'grid', gridTemplateColumns: isMobile ? '52px repeat(4,1fr)' : '72px repeat(4,1fr)', borderTop: '1px solid #ccc', alignItems: 'stretch' }}>
+                      <div style={{ fontSize: isMobile ? 11 : 13, fontWeight: 600, color: isWeekend ? '#ef4444' : '#333', padding: isMobile ? '6px 3px' : '7px 6px', display: 'flex', alignItems: 'center', background: isWeekend ? '#fff8f8' : '#fff' }}>
+                        {calM + 1}/{d}<br /><span style={{ fontSize: isMobile ? 9 : 10, fontWeight: 400 }}>({DOWS[dow]})</span>
                       </div>
                       {CARS.map(car => {
                         const rec = records.find(r => r.date === ds && r.car === car)
                         return (
-                          <div key={car} style={{ padding: '4px 2px', borderLeft: '1px solid #f5f5f5', minHeight: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <div key={car} style={{ padding: '4px 2px', borderLeft: '1px solid #ccc', minHeight: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             {rec ? (
                               <span onClick={() => { setSelectedId(rec.id); setModal('detail') }}
                                 style={{ fontSize: isMobile ? 9 : 10, padding: '2px 4px', borderRadius: 3, cursor: 'pointer', textAlign: 'center', lineHeight: 1.3, background: rec.locked ? '#f5f5f5' : '#ecfdf5', color: rec.locked ? '#999' : '#065f46' }}>
