@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import Image from 'next/image'
 import { supabase, Dispatch } from '@/lib/supabase'
 import { CARS, DEPTS, CAR_NUMBERS } from '@/lib/constants'
 import FuelBar from '@/components/FuelBar'
@@ -209,35 +208,23 @@ export default function Home() {
     <div style={{ maxWidth: 900, margin: '0 auto', padding: isMobile ? '0 0 2rem' : '0 0.75rem 2rem', fontFamily: 'inherit' }}>
 
       {/* ── 헤더 ── */}
-      <div style={{ background: '#fff', borderBottom: '1px solid #e8e8e8', padding: isMobile ? '0.7rem 1rem' : '0.875rem 1.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 14 }}>
-        <Image src="/symbol.png" alt="광주광역시 심볼" width={isMobile ? 38 : 48} height={isMobile ? 38 : 48} style={{ objectFit: 'contain', flexShrink: 0 }} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: isMobile ? 4 : 6, flexWrap: 'wrap' }}>
-            <span style={{
-              fontSize: isMobile ? 15 : 20,
-              fontWeight: 800,
-              color: '#c0392b',
-              letterSpacing: '-0.5px',
-              fontFamily: "'Apple SD Gothic Neo', '맑은 고딕', 'Malgun Gothic', sans-serif",
-              lineHeight: 1.2,
-            }}>광주광역시</span>
-            <span style={{
-              fontSize: isMobile ? 13 : 17,
-              fontWeight: 700,
-              color: '#1a1a1a',
-              letterSpacing: '-0.3px',
-              fontFamily: "'Apple SD Gothic Neo', '맑은 고딕', 'Malgun Gothic', sans-serif",
-              lineHeight: 1.2,
-            }}>보건환경연구원</span>
-          </div>
-          <div style={{
-            fontSize: isMobile ? 10 : 12,
-            fontWeight: 500,
-            color: '#888',
-            letterSpacing: '0.5px',
-            fontFamily: "'Apple SD Gothic Neo', '맑은 고딕', 'Malgun Gothic', sans-serif",
-          }}>공용차량 배차 시스템</div>
-        </div>
+      <div style={{ background: '#fff', borderBottom: '1px solid #e8e8e8', padding: isMobile ? '0.75rem 1rem' : '1rem 1.5rem', marginBottom: '1rem' }}>
+        <div style={{
+          fontSize: isMobile ? 15 : 19,
+          fontWeight: 700,
+          color: '#1a1a1a',
+          letterSpacing: '-0.3px',
+          fontFamily: "'Apple SD Gothic Neo', '맑은 고딕', 'Malgun Gothic', sans-serif",
+          lineHeight: 1.3,
+        }}>광주광역시 보건환경연구원</div>
+        <div style={{
+          fontSize: isMobile ? 11 : 13,
+          fontWeight: 400,
+          color: '#888',
+          letterSpacing: '0.2px',
+          fontFamily: "'Apple SD Gothic Neo', '맑은 고딕', 'Malgun Gothic', sans-serif",
+          marginTop: 2,
+        }}>공용차량 배차 시스템</div>
       </div>
 
       <div style={{ padding: isMobile ? '0 0.75rem' : '0' }}>
