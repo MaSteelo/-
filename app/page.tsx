@@ -10,29 +10,23 @@ const ADMIN_PW = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || '1234'
 const DOWS = ['일', '월', '화', '수', '목', '금', '토']
 
 /* 공휴일 캐시 */
-const holidayCache: Record<string, Record<string, string>> = {}
-
+const holidayCache: Record<number, Record<string, string>> = {}
 async function fetchHolidays(year: number): Promise<Record<string, string>> {
   if (holidayCache[year]) return holidayCache[year]
   try {
-    const res = await fetch(
-      `https://date.nager.at/api/v3/PublicHolidays/${year}/KR`
-    )
+    const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/KR`)
     if (!res.ok) return {}
     const data: { date: string; localName: string }[] = await res.json()
     const map: Record<string, string> = {}
     data.forEach(h => { map[h.date] = h.localName })
     holidayCache[year] = map
     return map
-  } catch {
-    return {}
-  }
+  } catch { return {} }
 }
 
 type Tab = 'apply' | 'cal' | 'list'
 type ModalMode = 'detail' | 'edit' | 'delete' | 'notice' | 'adminLogin' | 'conflict' | null
 
-/* ── 공통 스타일 ── */
 const S = {
   input: { fontSize: 14, padding: '8px 10px', border: '1px solid #d0d0d0', borderRadius: 8, background: '#fff', width: '100%', fontFamily: 'inherit' } as React.CSSProperties,
   btn: { display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 16px', fontSize: 13, fontWeight: 500, border: '1px solid #d0d0d0', borderRadius: 8, cursor: 'pointer', background: '#fff' } as React.CSSProperties,
@@ -107,9 +101,7 @@ export default function Home() {
     return () => { window.removeEventListener('hashchange', check); window.removeEventListener('resize', checkMobile) }
   }, [])
 
-  useEffect(() => {
-    fetchHolidays(calMonth.getFullYear()).then(setHolidays)
-  }, [calMonth])
+  useEffect(() => { fetchHolidays(calMonth.getFullYear()).then(setHolidays) }, [calMonth])
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3500) }
 
@@ -128,8 +120,7 @@ export default function Home() {
   const toMin = (t: string) => { if (!t) return null; const [h, m] = t.split(':').map(Number); return h * 60 + m }
   const hasConflict = (date: string, car: string, depart: string, arrive: string, excludeId?: number) => {
     if (!depart || !arrive) return false
-    const newStart = toMin(depart)!
-    const newEnd = toMin(arrive)!
+    const newStart = toMin(depart)!; const newEnd = toMin(arrive)!
     if (newStart >= newEnd) return false
     return records.some(r => {
       if (r.car !== car || r.date !== date) return false
@@ -161,6 +152,7 @@ export default function Home() {
     setFDate(new Date().toISOString().split('T')[0])
     showToast('배차 신청이 완료되었습니다.')
     setModal('notice')
+    fetchRecords()
   }
 
   /* 수정 모달 열기 */
@@ -195,7 +187,7 @@ export default function Home() {
     setModal(null); showToast('삭제되었습니다.'); fetchRecords()
   }
 
-  /* 잠금 토글 */
+  /* 잠금 토글 (관리자 전용) */
   const toggleLock = async (r: Dispatch) => {
     const { error } = await supabase.from('dispatches').update({ locked: !r.locked }).eq('id', r.id)
     if (error) { alert('오류: ' + error.message); return }
@@ -208,7 +200,7 @@ export default function Home() {
     else { setPwError(true); setAdminPwInput('') }
   }
 
-  /* 월별 필터 */
+  /* 월별 필터 (신청내역 탭용) */
   const now = new Date()
   const monthKeys: { y: number; m: number }[] = []
   for (let i = 0; i < loadedMonths; i++) {
@@ -224,57 +216,67 @@ export default function Home() {
   const calDays = new Date(calY, calM + 1, 0).getDate()
   const selectedRecord = records.find(r => r.id === selectedId)
 
+  /* 탭 목록: 관리자면 신청내역 탭도 표시 */
+  const tabs: { key: Tab; label: string }[] = [
+    { key: 'apply', label: '배차 신청' },
+    { key: 'cal', label: '일정 확인' },
+    ...(isAdmin ? [{ key: 'list' as Tab, label: '신청 내역' }] : []),
+  ]
+
   /* 리스트 그리드 */
-  const listGrid = isMobile
-    ? '72px 58px 1fr 80px'
-    : '90px 70px 1fr 90px 56px 120px'
+  const listGrid = isMobile ? '72px 58px 1fr 80px' : '90px 70px 1fr 90px 56px 120px'
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: isMobile ? '0 0 2rem' : '0 0.75rem 2rem', fontFamily: 'inherit' }}>
 
       {/* ── 헤더 ── */}
-      <div style={{ background: '#fff', borderBottom: '1px solid #e8e8e8', padding: isMobile ? '0.75rem 1rem' : '1rem 1.5rem', marginBottom: '1rem' }}>
-        <div style={{
-          fontSize: isMobile ? 15 : 19,
-          fontWeight: 700,
-          color: '#1a1a1a',
-          letterSpacing: '-0.3px',
-          fontFamily: "'Apple SD Gothic Neo', '맑은 고딕', 'Malgun Gothic', sans-serif",
-          lineHeight: 1.3,
-        }}>광주광역시 보건환경연구원</div>
-        <div style={{
-          fontSize: isMobile ? 11 : 13,
-          fontWeight: 400,
-          color: '#888',
-          letterSpacing: '0.2px',
-          fontFamily: "'Apple SD Gothic Neo', '맑은 고딕', 'Malgun Gothic', sans-serif",
-          marginTop: 2,
-        }}>공용차량 배차 시스템</div>
+      <div style={{ background: '#fff', borderBottom: '1px solid #e8e8e8', padding: isMobile ? '0.75rem 1rem' : '1rem 1.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: isMobile ? 15 : 19, fontWeight: 700, color: '#1a1a1a', letterSpacing: '-0.3px', fontFamily: "'Apple SD Gothic Neo', '맑은 고딕', 'Malgun Gothic', sans-serif", lineHeight: 1.3 }}>광주광역시 보건환경연구원</div>
+          <div style={{ fontSize: isMobile ? 11 : 13, fontWeight: 400, color: '#888', letterSpacing: '0.2px', fontFamily: "'Apple SD Gothic Neo', '맑은 고딕', 'Malgun Gothic', sans-serif", marginTop: 2 }}>공용차량 배차 시스템</div>
+        </div>
+        {/* 관리자 로그인/로그아웃 버튼 */}
+        <div>
+          {isAdmin ? (
+            <button style={{ ...S.editBtn, color: '#065f46', borderColor: '#6ee7b7', background: '#ecfdf5', fontSize: 12, padding: '5px 10px' }} onClick={() => { setIsAdmin(false); if (tab === 'list') setTab('cal') }}>
+              🔑 관리자 로그아웃
+            </button>
+          ) : showAdminBtn ? (
+            <button style={{ ...S.editBtn, fontSize: 12, padding: '5px 10px' }} onClick={() => { setAdminPwInput(''); setPwError(false); setModal('adminLogin') }}>
+              🔑 관리자
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div style={{ padding: isMobile ? '0 0.75rem' : '0' }}>
+
+        {/* 관리자 배지 */}
+        {isAdmin && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#ecfdf5', border: '1px solid #6ee7b7', borderRadius: 8, padding: '7px 12px', marginBottom: '1rem', fontSize: 12, color: '#065f46' }}>
+            <span>🔑</span>
+            <span><strong>관리자 모드</strong> — 신청 내역 탭과 확인(잠금) 기능이 활성화되었습니다</span>
+          </div>
+        )}
+
         {/* ── 탭 ── */}
         <div style={{ display: 'flex', borderBottom: '1px solid #e0e0e0', marginBottom: '1.25rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-          {(['apply', 'cal', 'list'] as Tab[]).map((t, i) => (
-            <button key={t} onClick={() => switchTab(t)} style={{
+          {tabs.map(({ key, label }) => (
+            <button key={key} onClick={() => switchTab(key)} style={{
               padding: isMobile ? '10px 12px' : '10px 18px',
               fontSize: isMobile ? 13 : 14,
-              color: tab === t ? '#c0392b' : '#999',
+              color: tab === key ? '#c0392b' : '#999',
               background: 'transparent', border: 'none',
-              borderBottom: tab === t ? '2px solid #c0392b' : '2px solid transparent',
-              cursor: 'pointer', fontWeight: tab === t ? 600 : 400,
+              borderBottom: tab === key ? '2px solid #c0392b' : '2px solid transparent',
+              cursor: 'pointer', fontWeight: tab === key ? 600 : 400,
               whiteSpace: 'nowrap', flexShrink: 0,
-            }}>
-              {['배차 신청', '일정 확인', '신청 내역 / 수정'][i]}
-            </button>
+            }}>{label}</button>
           ))}
         </div>
 
         {/* 토스트 */}
         {toast && (
-          <div style={{ background: '#ecfdf5', border: '1px solid #6ee7b7', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#065f46', marginBottom: '1rem' }}>
-            {toast}
-          </div>
+          <div style={{ background: '#ecfdf5', border: '1px solid #6ee7b7', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#065f46', marginBottom: '1rem' }}>{toast}</div>
         )}
 
         {/* ───── 배차 신청 ───── */}
@@ -302,24 +304,16 @@ export default function Home() {
               <div style={S.fg}>
                 <label style={S.label}>출발 시간</label>
                 <input style={S.input} type="text" inputMode="numeric" placeholder="예) 09:00" value={fDepart}
-                  onChange={e => {
-                    let v = e.target.value.replace(/[^0-9:]/g, '')
-                    if (v.length === 2 && !v.includes(':') && fDepart.length < 2) v = v + ':'
-                    setFDepart(v)
-                  }} maxLength={5} />
+                  onChange={e => { let v = e.target.value.replace(/[^0-9:]/g, ''); if (v.length === 2 && !v.includes(':') && fDepart.length < 2) v = v + ':'; setFDepart(v) }} maxLength={5} />
               </div>
               <div style={S.fg}>
                 <label style={S.label}>도착 시간 <span style={{ fontSize: 11, color: '#bbb' }}>(복귀 후 기입)</span></label>
                 <input style={S.input} type="text" inputMode="numeric" placeholder="예) 18:00" value={fArrive}
-                  onChange={e => {
-                    let v = e.target.value.replace(/[^0-9:]/g, '')
-                    if (v.length === 2 && !v.includes(':') && fArrive.length < 2) v = v + ':'
-                    setFArrive(v)
-                  }} maxLength={5} />
+                  onChange={e => { let v = e.target.value.replace(/[^0-9:]/g, ''); if (v.length === 2 && !v.includes(':') && fArrive.length < 2) v = v + ':'; setFArrive(v) }} maxLength={5} />
               </div>
             </div>
             <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#92400e', marginTop: '1rem', lineHeight: 1.6 }}>
-              📋 <strong>안내</strong> — 복귀 후 <strong>신청 내역 / 수정</strong> 탭에서 동승인·도착시간·유류잔량·누적거리를 꼭 기입해 주세요.
+              📋 <strong>안내</strong> — 복귀 후 일정 확인 탭에서 해당 셀을 클릭하여 동승인·도착시간·유류잔량·누적거리를 꼭 기입해 주세요.
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: '1rem', flexWrap: 'wrap' }}>
               <button style={S.btn} onClick={() => { setFCar(''); setFDept(''); setFUser(''); setFPassengers(''); setFDesc(''); setFDest(''); setFDepart(''); setFArrive('') }}>초기화</button>
@@ -338,15 +332,17 @@ export default function Home() {
             </div>
             <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
               <div style={{ minWidth: 380 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '52px repeat(4,1fr)' : '72px repeat(4,1fr)', fontSize: isMobile ? 12 : 13, fontWeight: 700, color: '#444', borderBottom: '2px solid #bbb', background: '#fafafa' }}>
-                  <div style={{ padding: '6px 4px', textAlign: 'center' }}>날짜</div>
+                {/* 달력 헤더 - sticky 고정 */}
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '52px repeat(4,1fr)' : '72px repeat(4,1fr)', fontSize: isMobile ? 12 : 13, fontWeight: 700, color: '#444', borderBottom: '2px solid #bbb', background: '#fafafa', position: 'sticky', top: 0, zIndex: 10 }}>
+                  <div style={{ padding: '6px 4px', textAlign: 'center', background: '#fafafa' }}>날짜</div>
                   {CARS.map(car => (
-                    <div key={car} style={{ padding: '6px 2px', textAlign: 'center', borderLeft: '1px solid #ccc' }}>
+                    <div key={car} style={{ padding: '6px 2px', textAlign: 'center', borderLeft: '1px solid #ccc', background: '#fafafa' }}>
                       {car.split(' ')[0]}<br />
                       <span style={{ fontSize: isMobile ? 9 : 10, color: '#888', fontWeight: 500 }}>{CAR_NUMBERS[car]}</span>
                     </div>
                   ))}
                 </div>
+                {/* 달력 행 */}
                 {Array.from({ length: calDays }, (_, i) => i + 1).map(d => {
                   const ds = `${calY}-${String(calM + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
                   const dow = new Date(calY, calM, d).getDay()
@@ -361,12 +357,17 @@ export default function Home() {
                       </div>
                       {CARS.map(car => {
                         const rec = records.find(r => r.date === ds && r.car === car)
+                        /* 색상: 미확인=초록, 확인완료(잠금)=파란색 */
+                        const cellBg = rec ? (rec.locked ? '#e8e8e8' : '#ecfdf5') : 'transparent'
+                        const cellColor = rec ? (rec.locked ? '#555' : '#065f46') : '#ddd'
                         return (
                           <div key={car} style={{ padding: '4px 2px', borderLeft: '1px solid #ccc', minHeight: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             {rec ? (
-                              <span onClick={() => { setSelectedId(rec.id); setModal('detail') }}
-                                style={{ fontSize: isMobile ? 9 : 10, padding: '2px 4px', borderRadius: 3, cursor: 'pointer', textAlign: 'center', lineHeight: 1.3, background: rec.locked ? '#f5f5f5' : '#ecfdf5', color: rec.locked ? '#999' : '#065f46' }}>
-                                {rec.locked ? '🔒' : ''}{rec.dept}
+                              <span
+                                onClick={() => { setSelectedId(rec.id); setModal('detail') }}
+                                style={{ fontSize: isMobile ? 9 : 10, padding: '3px 4px', borderRadius: 3, cursor: 'pointer', textAlign: 'center', lineHeight: 1.3, background: cellBg, color: cellColor, fontWeight: 600, width: '90%', display: 'block' }}
+                              >
+                                {rec.locked ? '✓ ' : ''}{rec.dept}
                               </span>
                             ) : <span style={{ color: '#ddd', fontSize: 10 }}>-</span>}
                           </div>
@@ -377,96 +378,89 @@ export default function Home() {
                 })}
               </div>
             </div>
-            <p style={{ fontSize: 11, color: '#bbb', marginTop: 8 }}>부서명을 누르면 상세 정보를 확인할 수 있습니다</p>
+            {/* 범례 */}
+            <div style={{ display: 'flex', gap: 12, marginTop: 10, fontSize: 11, color: '#888', alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ width: 12, height: 12, borderRadius: 2, background: '#ecfdf5', border: '1px solid #6ee7b7', display: 'inline-block' }} />배차중
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ width: 12, height: 12, borderRadius: 2, background: '#e8e8e8', border: '1px solid #ccc', display: 'inline-block' }} />확인완료
+              </span>
+              <span style={{ marginLeft: 'auto', fontSize: 10, color: '#bbb' }}>셀을 클릭하면 상세·수정·삭제 가능</span>
+            </div>
           </div>
         )}
 
-        {/* ───── 신청 내역 ───── */}
-        {tab === 'list' && (
-          <>
-            {isAdmin && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#ecfdf5', border: '1px solid #6ee7b7', borderRadius: 8, padding: '8px 12px', marginBottom: '1rem', fontSize: 12, color: '#065f46', flexWrap: 'wrap' }}>
-                <span>🔑</span>
-                <span><strong>관리자 모드</strong> — 확인(잠금) 및 해제 권한이 활성화되었습니다</span>
-                <button style={{ ...S.editBtn, marginLeft: 'auto' }} onClick={() => setIsAdmin(false)}>로그아웃</button>
+        {/* ───── 신청 내역 (관리자 전용) ───── */}
+        {tab === 'list' && isAdmin && (
+          <div style={S.card}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: 8 }}>
+              <p style={{ fontSize: 15, fontWeight: 600, margin: 0, color: '#1a1a1a' }}>신청 내역 <span style={{ fontSize: 12, color: '#888', fontWeight: 400 }}>(관리자)</span></p>
+              <span style={{ fontSize: 12, color: '#bbb' }}>
+                {loadedMonths === 1 ? `${now.getFullYear()}년 ${now.getMonth() + 1}월` : `${oldest.y}년 ${oldest.m + 1}월 ~ ${now.getFullYear()}년 ${now.getMonth() + 1}월`}
+              </span>
+            </div>
+
+            {loading && <p style={{ textAlign: 'center', fontSize: 13, color: '#999', padding: '2rem 0' }}>불러오는 중...</p>}
+
+            {monthKeys.map(({ y, m }) => {
+              const key = `${y}-${String(m + 1).padStart(2, '0')}`
+              const monthRecs = records.filter(r => r.date.startsWith(key)).sort((a, b) => b.date.localeCompare(a.date))
+              if (monthRecs.length === 0) return null
+              const isNow = y === now.getFullYear() && m === now.getMonth()
+              return (
+                <div key={key} style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f0', marginBottom: 4 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>
+                      {y}년 {m + 1}월{isNow && <span style={{ fontSize: 11, color: '#1D9E75', fontWeight: 400, marginLeft: 6 }}>이번 달</span>}
+                    </span>
+                    <span style={{ fontSize: 11, color: '#bbb' }}>{monthRecs.length}건</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: listGrid, gap: 6, padding: '6px 0', fontSize: 11, fontWeight: 500, color: '#999', borderBottom: '1px solid #f0f0f0' }}>
+                    <span>사용일자</span><span>차량</span><span>사용자 / 운행내용</span>
+                    {!isMobile && <><span>목적지</span><span>유류</span></>}<span>관리</span>
+                  </div>
+                  {monthRecs.map(r => (
+                    <div key={r.id} style={{ display: 'grid', gridTemplateColumns: listGrid, gap: 6, padding: r.locked ? '9px 6px' : '9px 0', borderTop: '1px solid #f8f8f8', fontSize: 12, alignItems: 'center', background: r.locked ? '#f0f0f0' : 'transparent', borderRadius: r.locked ? 8 : 0, margin: r.locked ? '2px 0' : 0 }}>
+                      <span style={{ fontSize: isMobile ? 11 : 12 }}>{r.date}</span>
+                      <span style={S.tag}>{r.car.split(' ')[0]}</span>
+                      <div>
+                        <span style={{ fontWeight: 500, fontSize: isMobile ? 12 : 13 }}>{r.user}{r.passengers ? ` (${r.passengers})` : ''}</span><br />
+                        <span style={{ color: '#999', fontSize: 11 }}>{r.description || '-'}</span>
+                      </div>
+                      {!isMobile && <>
+                        <span style={{ color: '#999', fontSize: 11 }}>{r.dest}</span>
+                        <MiniFuel value={r.fuel || 0} />
+                      </>}
+                      <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'center' }}>
+                        {r.locked && <span style={{ ...S.chip, background: '#e8e8e8', color: '#555', borderColor: '#ccc' }}>✓</span>}
+                        <button style={S.editBtn} onClick={() => { setSelectedId(r.id); setModal('detail') }}>상세</button>
+                        {!r.locked && (
+                          <>
+                            <button style={{ ...S.editBtn, color: '#d97706', borderColor: '#fcd34d' }} onClick={() => openEdit(r)}>수정</button>
+                            <button style={{ ...S.editBtn, color: '#dc2626', borderColor: '#fca5a5' }} onClick={() => { setSelectedId(r.id); setModal('delete') }}>삭제</button>
+                          </>
+                        )}
+                        {r.locked
+                          ? <button style={{ ...S.editBtn, color: '#d97706', borderColor: '#fcd34d' }} onClick={() => toggleLock(r)}>🔓 해제</button>
+                          : <button style={{ ...S.editBtn, color: '#555', borderColor: '#ccc', background: '#e8e8e8' }} onClick={() => toggleLock(r)}>✓ 확인</button>
+                        }
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+
+            {!loading && monthKeys.every(({ y, m }) => records.filter(r => r.date.startsWith(`${y}-${String(m + 1).padStart(2, '0')}`)).length === 0) && (
+              <p style={{ textAlign: 'center', fontSize: 13, color: '#bbb', padding: '2rem 0' }}>이번 달 신청 내역이 없습니다</p>
+            )}
+            {hasMore && (
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '0.5rem' }}>
+                <button style={{ ...S.btn, width: '100%', justifyContent: 'center', color: '#999' }} onClick={() => setLoadedMonths(v => v + 1)}>▲ 이전 달 내역 불러오기</button>
               </div>
             )}
-            <div style={S.card}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: 8 }}>
-                <p style={{ fontSize: 15, fontWeight: 600, margin: 0, color: '#1a1a1a' }}>신청 내역</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 12, color: '#bbb' }}>
-                    {loadedMonths === 1 ? `${now.getFullYear()}년 ${now.getMonth() + 1}월` : `${oldest.y}년 ${oldest.m + 1}월 ~ ${now.getFullYear()}년 ${now.getMonth() + 1}월`}
-                  </span>
-                  {showAdminBtn && !isAdmin && (
-                    <button style={S.editBtn} onClick={() => { setAdminPwInput(''); setPwError(false); setModal('adminLogin') }}>🔑 관리자</button>
-                  )}
-                </div>
-              </div>
-
-              {loading && <p style={{ textAlign: 'center', fontSize: 13, color: '#999', padding: '2rem 0' }}>불러오는 중...</p>}
-
-              {monthKeys.map(({ y, m }) => {
-                const key = `${y}-${String(m + 1).padStart(2, '0')}`
-                const monthRecs = records.filter(r => r.date.startsWith(key)).sort((a, b) => b.date.localeCompare(a.date))
-                if (monthRecs.length === 0) return null
-                const isNow = y === now.getFullYear() && m === now.getMonth()
-                return (
-                  <div key={key} style={{ marginBottom: '1.25rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f0', marginBottom: 4 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600 }}>
-                        {y}년 {m + 1}월{isNow && <span style={{ fontSize: 11, color: '#1D9E75', fontWeight: 400, marginLeft: 6 }}>이번 달</span>}
-                      </span>
-                      <span style={{ fontSize: 11, color: '#bbb' }}>{monthRecs.length}건</span>
-                    </div>
-                    {/* 리스트 헤더 */}
-                    <div style={{ display: 'grid', gridTemplateColumns: listGrid, gap: 6, padding: '6px 0', fontSize: 11, fontWeight: 500, color: '#999', borderBottom: '1px solid #f0f0f0' }}>
-                      <span>사용일자</span><span>차량</span><span>사용자 / 운행내용</span>
-                      {!isMobile && <><span>목적지</span><span>유류</span></>}<span>관리</span>
-                    </div>
-                    {monthRecs.map(r => (
-                      <div key={r.id} style={{ display: 'grid', gridTemplateColumns: listGrid, gap: 6, padding: '9px 0', borderTop: '1px solid #f8f8f8', fontSize: 12, alignItems: 'center', ...(r.locked ? { background: '#fafafa', borderRadius: 8, padding: '9px 6px', margin: '2px 0' } : {}) }}>
-                        <span style={{ fontSize: isMobile ? 11 : 12 }}>{r.date}</span>
-                        <span style={S.tag}>{r.car.split(' ')[0]}</span>
-                        <div>
-                          <span style={{ fontWeight: 500, fontSize: isMobile ? 12 : 13 }}>{r.user}{r.passengers ? ` (${r.passengers})` : ''}</span><br />
-                          <span style={{ color: '#999', fontSize: 11 }}>{r.description || '-'}</span>
-                        </div>
-                        {!isMobile && <>
-                          <span style={{ color: '#999', fontSize: 11 }}>{r.dest}</span>
-                          <MiniFuel value={r.fuel || 0} />
-                        </>}
-                        <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'center' }}>
-                          {r.locked && <span style={S.chip}>🔒</span>}
-                          <button style={S.editBtn} onClick={() => { setSelectedId(r.id); setModal('detail') }}>상세</button>
-                          {!r.locked && (
-                            <>
-                              <button style={{ ...S.editBtn, color: '#d97706', borderColor: '#fcd34d' }} onClick={() => openEdit(r)}>수정</button>
-                              <button style={{ ...S.editBtn, color: '#dc2626', borderColor: '#fca5a5' }} onClick={() => { setSelectedId(r.id); setModal('delete') }}>삭제</button>
-                            </>
-                          )}
-                          {isAdmin && (r.locked
-                            ? <button style={{ ...S.editBtn, color: '#d97706', borderColor: '#fcd34d' }} onClick={() => toggleLock(r)}>🔓 해제</button>
-                            : <button style={{ ...S.editBtn, color: '#065f46', borderColor: '#6ee7b7', background: '#ecfdf5' }} onClick={() => toggleLock(r)}>✓ 확인</button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )
-              })}
-
-              {!loading && monthKeys.every(({ y, m }) => records.filter(r => r.date.startsWith(`${y}-${String(m + 1).padStart(2, '0')}`)).length === 0) && (
-                <p style={{ textAlign: 'center', fontSize: 13, color: '#bbb', padding: '2rem 0' }}>이번 달 신청 내역이 없습니다</p>
-              )}
-
-              {hasMore && (
-                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '0.5rem' }}>
-                  <button style={{ ...S.btn, width: '100%', justifyContent: 'center', color: '#999' }} onClick={() => setLoadedMonths(v => v + 1)}>▲ 이전 달 내역 불러오기</button>
-                </div>
-              )}
-            </div>
-          </>
+          </div>
         )}
       </div>
 
@@ -477,8 +471,8 @@ export default function Home() {
             <div style={{ fontSize: 28, marginBottom: 10 }}>📋</div>
             <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>운행 후 꼭 확인해 주세요</p>
             <p style={{ fontSize: 13, color: '#888', lineHeight: 1.7, marginBottom: '1.25rem' }}>
-              출장·운행 복귀 후 <strong style={{ color: '#d97706' }}>신청 내역 / 수정</strong> 탭에서<br />
-              아래 항목을 반드시 수정·기입해 주세요.<br /><br />
+              출장·운행 복귀 후 <strong style={{ color: '#d97706' }}>일정 확인</strong> 탭에서<br />
+              해당 셀을 클릭하여 아래 항목을 기입해 주세요.<br /><br />
               <strong style={{ color: '#d97706' }}>동승인 · 실제 도착시간<br />유류(배터리)잔량 · 누적거리(km)</strong>
             </p>
             <button style={{ ...S.btn, ...S.btnPri, width: '100%', justifyContent: 'center' }} onClick={() => setModal(null)}>확인했습니다</button>
@@ -500,12 +494,15 @@ export default function Home() {
         </div>
       )}
 
-      {/* ── 상세 모달 ── */}
+      {/* ── 상세/수정/삭제 모달 (일정확인 탭에서도 동작) ── */}
       {modal === 'detail' && selectedRecord && (
         <div style={S.modalBg} onClick={e => { if (e.target === e.currentTarget) setModal(null) }}>
           <div style={S.modal}>
-            <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>배차 상세 정보</p>
-            <p style={{ fontSize: 12, color: '#999', marginBottom: '1rem' }}>{selectedRecord.date} · {selectedRecord.car}{selectedRecord.locked ? ' 🔒' : ''}</p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+              <p style={{ fontSize: 15, fontWeight: 600 }}>배차 상세 정보</p>
+              {selectedRecord.locked && <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: '#e8e8e8', color: '#555', fontWeight: 500 }}>✓ 확인완료</span>}
+            </div>
+            <p style={{ fontSize: 12, color: '#999', marginBottom: '1rem' }}>{selectedRecord.date} · {selectedRecord.car}</p>
             {([
               ['부서', selectedRecord.dept],
               ['사용자(운전자)', selectedRecord.user],
@@ -519,7 +516,21 @@ export default function Home() {
               <span style={{ fontSize: 12, color: '#999', minWidth: 110 }}>유류(배터리)잔량</span>
               <FuelBar value={selectedRecord.fuel || 0} readonly />
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+            {/* 버튼: 잠금 여부에 따라 분기 */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {!selectedRecord.locked && (
+                  <>
+                    <button style={{ ...S.btn, ...S.btnPri, padding: '7px 14px', fontSize: 13 }} onClick={() => openEdit(selectedRecord)}>수정</button>
+                    <button style={{ ...S.btn, ...S.btnDanger, padding: '7px 14px', fontSize: 13 }} onClick={() => setModal('delete')}>삭제</button>
+                  </>
+                )}
+                {isAdmin && (
+                  selectedRecord.locked
+                    ? <button style={{ ...S.btn, color: '#d97706', borderColor: '#fcd34d', padding: '7px 14px', fontSize: 13 }} onClick={() => { toggleLock(selectedRecord); setModal(null) }}>🔓 확인 해제</button>
+                    : <button style={{ ...S.btn, color: '#555', borderColor: '#ccc', background: '#e8e8e8', padding: '7px 14px', fontSize: 13 }} onClick={() => { toggleLock(selectedRecord); setModal(null) }}>✓ 확인</button>
+                )}
+              </div>
               <button style={S.btn} onClick={() => setModal(null)}>닫기</button>
             </div>
           </div>
@@ -544,10 +555,14 @@ export default function Home() {
               <div style={{ ...S.fg, gridColumn: '1/-1' }}><label style={S.label}>동승인</label><input style={S.input} type="text" value={ePassengers} onChange={e => setEPassengers(e.target.value)} placeholder="없으면 비워두세요" /></div>
               <div style={{ ...S.fg, gridColumn: '1/-1' }}><label style={S.label}>운행내용</label><input style={S.input} type="text" value={eDesc} onChange={e => setEDesc(e.target.value)} /></div>
               <div style={{ ...S.fg, gridColumn: '1/-1' }}><label style={S.label}>목적지</label><input style={S.input} type="text" value={eDest} onChange={e => setEDest(e.target.value)} /></div>
-              <div style={S.fg}><label style={S.label}>출발 시간</label><input style={S.input} type="text" inputMode="numeric" placeholder="예) 09:00" value={eDepart}
-                onChange={e => { let v = e.target.value.replace(/[^0-9:]/g, ''); if (v.length===2 && !v.includes(':') && eDepart.length<2) v=v+':'; setEDepart(v) }} maxLength={5} /></div>
-              <div style={S.fg}><label style={S.label}>도착 시간</label><input style={S.input} type="text" inputMode="numeric" placeholder="예) 18:00" value={eArrive}
-                onChange={e => { let v = e.target.value.replace(/[^0-9:]/g, ''); if (v.length===2 && !v.includes(':') && eArrive.length<2) v=v+':'; setEArrive(v) }} maxLength={5} /></div>
+              <div style={S.fg}><label style={S.label}>출발 시간</label>
+                <input style={S.input} type="text" inputMode="numeric" placeholder="예) 09:00" value={eDepart}
+                  onChange={e => { let v = e.target.value.replace(/[^0-9:]/g, ''); if (v.length===2 && !v.includes(':') && eDepart.length<2) v=v+':'; setEDepart(v) }} maxLength={5} />
+              </div>
+              <div style={S.fg}><label style={S.label}>도착 시간</label>
+                <input style={S.input} type="text" inputMode="numeric" placeholder="예) 18:00" value={eArrive}
+                  onChange={e => { let v = e.target.value.replace(/[^0-9:]/g, ''); if (v.length===2 && !v.includes(':') && eArrive.length<2) v=v+':'; setEArrive(v) }} maxLength={5} />
+              </div>
               <div style={{ ...S.fg, gridColumn: '1/-1' }}><label style={S.label}>유류(배터리)잔량</label><FuelBar value={eFuel} onChange={setEFuel} /></div>
               <div style={S.fg}><label style={S.label}>누적거리 (km)</label><input style={S.input} type="number" value={eKm} onChange={e => setEKm(e.target.value)} placeholder="km" /></div>
             </div>
