@@ -324,69 +324,71 @@ export default function Home() {
 
         {/* ───── 일정 확인 ───── */}
         {tab === 'cal' && (
-          <div style={S.card}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '1rem' }}>
+          <div style={{ background: '#fff', border: '1px solid #e8e8e8', borderRadius: 12, marginBottom: '1rem' }}>
+            {/* 상단 고정 헤더 영역 (스크롤 밖) */}
+            <div style={{ padding: '1rem 1.25rem 0.75rem', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', borderBottom: '1px solid #f0f0f0' }}>
               <button style={{ background: 'none', border: '1px solid #e0e0e0', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setCalMonth(new Date(calY, calM - 1, 1))}>‹</button>
               <span style={{ fontSize: 14, fontWeight: 600 }}>{calY}년 {calM + 1}월</span>
               <button style={{ background: 'none', border: '1px solid #e0e0e0', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', fontSize: 16 }} onClick={() => setCalMonth(new Date(calY, calM + 1, 1))}>›</button>
-            </div>
-            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-              <div style={{ minWidth: 380 }}>
-                {/* 달력 헤더 - sticky 고정 */}
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '52px repeat(4,1fr)' : '72px repeat(4,1fr)', fontSize: isMobile ? 12 : 13, fontWeight: 700, color: '#444', borderBottom: '2px solid #bbb', background: '#fafafa', position: 'sticky', top: 0, zIndex: 10 }}>
-                  <div style={{ padding: '6px 4px', textAlign: 'center', background: '#fafafa' }}>날짜</div>
-                  {CARS.map(car => (
-                    <div key={car} style={{ padding: '6px 2px', textAlign: 'center', borderLeft: '1px solid #ccc', background: '#fafafa' }}>
-                      {car.split(' ')[0]}<br />
-                      <span style={{ fontSize: isMobile ? 9 : 10, color: '#888', fontWeight: 500 }}>{CAR_NUMBERS[car]}</span>
-                    </div>
-                  ))}
-                </div>
-                {/* 달력 행 */}
-                {Array.from({ length: calDays }, (_, i) => i + 1).map(d => {
-                  const ds = `${calY}-${String(calM + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-                  const dow = new Date(calY, calM, d).getDay()
-                  const isWeekend = dow === 0 || dow === 6
-                  const holidayName = holidays[ds]
-                  const isRed = isWeekend || !!holidayName
-                  return (
-                    <div key={d} style={{ display: 'grid', gridTemplateColumns: isMobile ? '52px repeat(4,1fr)' : '72px repeat(4,1fr)', borderTop: '1px solid #ccc', alignItems: 'stretch' }}>
-                      <div style={{ fontSize: isMobile ? 11 : 13, fontWeight: 600, color: isRed ? '#ef4444' : '#333', padding: isMobile ? '6px 3px' : '7px 6px', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: isRed ? '#fff8f8' : '#fff' }}>
-                        <span>{calM + 1}/{d} <span style={{ fontSize: isMobile ? 9 : 10, fontWeight: 400 }}>({DOWS[dow]})</span></span>
-                        {holidayName && <span style={{ fontSize: 9, color: '#ef4444', fontWeight: 500, marginTop: 1, lineHeight: 1.2 }}>{holidayName}</span>}
-                      </div>
-                      {CARS.map(car => {
-                        const rec = records.find(r => r.date === ds && r.car === car)
-                        /* 색상: 미확인=초록, 확인완료(잠금)=파란색 */
-                        const cellBg = rec ? (rec.locked ? '#e8e8e8' : '#ecfdf5') : 'transparent'
-                        const cellColor = rec ? (rec.locked ? '#555' : '#065f46') : '#ddd'
-                        return (
-                          <div key={car} style={{ padding: '4px 2px', borderLeft: '1px solid #ccc', minHeight: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {rec ? (
-                              <span
-                                onClick={() => { setSelectedId(rec.id); setModal('detail') }}
-                                style={{ fontSize: isMobile ? 9 : 10, padding: '3px 4px', borderRadius: 3, cursor: 'pointer', textAlign: 'center', lineHeight: 1.3, background: cellBg, color: cellColor, fontWeight: 600, width: '90%', display: 'block' }}
-                              >
-                                {rec.locked ? '✓ ' : ''}{rec.dept}
-                              </span>
-                            ) : <span style={{ color: '#ddd', fontSize: 10 }}>-</span>}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )
-                })}
+              <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 600, color: '#444' }}>셀 클릭 → 상세·수정·삭제</span>
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center', fontSize: 11, color: '#888' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ width: 11, height: 11, borderRadius: 2, background: '#ecfdf5', border: '1px solid #6ee7b7', display: 'inline-block' }} />배차중
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ width: 11, height: 11, borderRadius: 2, background: '#e8e8e8', border: '1px solid #ccc', display: 'inline-block' }} />확인완료
+                </span>
               </div>
             </div>
-            {/* 범례 */}
-            <div style={{ display: 'flex', gap: 12, marginTop: 10, fontSize: 11, color: '#888', alignItems: 'center', flexWrap: 'wrap' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ width: 12, height: 12, borderRadius: 2, background: '#ecfdf5', border: '1px solid #6ee7b7', display: 'inline-block' }} />배차중
-              </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ width: 12, height: 12, borderRadius: 2, background: '#e8e8e8', border: '1px solid #ccc', display: 'inline-block' }} />확인완료
-              </span>
-              <span style={{ marginLeft: 'auto', fontSize: 10, color: '#bbb' }}>셀을 클릭하면 상세·수정·삭제 가능</span>
+            {/* 스크롤 컨테이너 — 이게 유일한 overflow 부모여야 thead sticky가 작동 */}
+            <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '65vh', WebkitOverflowScrolling: 'touch' }}>
+              <table style={{ width: '100%', minWidth: 380, borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+                <thead>
+                  <tr style={{ background: '#fafafa' }}>
+                    <th style={{ position: 'sticky', top: 0, zIndex: 20, width: isMobile ? 52 : 72, padding: '7px 4px', fontSize: isMobile ? 12 : 13, fontWeight: 700, color: '#444', background: '#fafafa', borderBottom: '2px solid #bbb', textAlign: 'center' }}>날짜</th>
+                    {CARS.map(car => (
+                      <th key={car} style={{ position: 'sticky', top: 0, zIndex: 20, padding: '7px 2px', fontSize: isMobile ? 12 : 13, fontWeight: 700, color: '#444', background: '#fafafa', borderBottom: '2px solid #bbb', borderLeft: '1px solid #ccc', textAlign: 'center' }}>
+                        {car.split(' ')[0]}<br />
+                        <span style={{ fontSize: isMobile ? 9 : 10, color: '#888', fontWeight: 500 }}>{CAR_NUMBERS[car]}</span>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.from({ length: calDays }, (_, i) => i + 1).map(d => {
+                    const ds = `${calY}-${String(calM + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+                    const dow = new Date(calY, calM, d).getDay()
+                    const isWeekend = dow === 0 || dow === 6
+                    const holidayName = holidays[ds]
+                    const isRed = isWeekend || !!holidayName
+                    return (
+                      <tr key={d} style={{ borderTop: '1px solid #ccc' }}>
+                        <td style={{ fontSize: isMobile ? 11 : 13, fontWeight: 600, color: isRed ? '#ef4444' : '#333', padding: isMobile ? '6px 3px' : '7px 6px', verticalAlign: 'middle', background: isRed ? '#fff8f8' : '#fff', whiteSpace: 'nowrap' }}>
+                          {calM + 1}/{d} <span style={{ fontSize: isMobile ? 9 : 10, fontWeight: 400 }}>({DOWS[dow]})</span>
+                          {holidayName && <><br /><span style={{ fontSize: 9, color: '#ef4444', fontWeight: 500 }}>{holidayName}</span></>}
+                        </td>
+                        {CARS.map(car => {
+                          const rec = records.find(r => r.date === ds && r.car === car)
+                          const cellBg = rec ? (rec.locked ? '#e8e8e8' : '#ecfdf5') : 'transparent'
+                          const cellColor = rec ? (rec.locked ? '#555' : '#065f46') : '#ddd'
+                          return (
+                            <td key={car} style={{ borderLeft: '1px solid #ccc', height: 38, textAlign: 'center', verticalAlign: 'middle', padding: '3px 2px' }}>
+                              {rec ? (
+                                <span
+                                  onClick={() => { setSelectedId(rec.id); setModal('detail') }}
+                                  style={{ fontSize: isMobile ? 9 : 10, padding: '3px 4px', borderRadius: 3, cursor: 'pointer', lineHeight: 1.3, background: cellBg, color: cellColor, fontWeight: 600, display: 'block', width: '92%', margin: '0 auto' }}
+                                >
+                                  {rec.locked ? '✓ ' : ''}{rec.dept}
+                                </span>
+                              ) : <span style={{ color: '#ddd', fontSize: 10 }}>-</span>}
+                            </td>
+                          )
+                        })}
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
